@@ -2,7 +2,18 @@ var fs = require('fs');
 var lzma = require('lzma-native')
 var mapparser = require('./MapParser.js')
 
-function count()
+function count(mappoints = [],actions = [[],[],[]]){
+    var total = 0
+    for(var i = 0;i<actions.length;i++){
+        total += actions[i][?]
+    }
+    var avg = total / actions.length
+    for(var i = 0;i<actions.length;i++){
+        variance += (actions[i][?] / avg) ** 2
+    }
+    console.log("Variance: ",variance)
+    return variance
+}
 
 const readuleb = (input, length) => {
     let result = 0;
