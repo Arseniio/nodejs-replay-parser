@@ -16,8 +16,7 @@ const readuleb = (input, length) => {
         }
     }
 };
-
-var file = "./arsenii0 - Station Earth - Cold Green Eyes ft. Roos Denayer [apple's Insane] (2018-10-23) Osu.osr"
+var file = "./arsenii0_-_Station_Earth_-_Cold_Green_Eyes_ft._Roos_Denayer_apples_Insane_2018-10-23_Osu.osr"
 
 //Has three parts; a single byte which will be either 0x00, indicating that the next two parts are not present,
 //or 0x0b (decimal 11), indicating that the next two parts are present.
@@ -47,7 +46,7 @@ function readByte(len, fileconst, movepointer = true, Rstring = false) {
     if (len == 1) {
         ret = fileconst[pos]
         movepointer == true ? pos = pos + len : ""
-        console.log('RB:', ret)
+        // console.log('RB:', ret)
         return ret
     }
 
@@ -58,18 +57,17 @@ function readByte(len, fileconst, movepointer = true, Rstring = false) {
         }
         movepointer == true ? pos = pos + len : ""
     }
-    console.log('RB:', ret)
+    // console.log('RB:', ret)
     if (!Rstring){
         switch (len) {
             case 2:
                 return Buffer.from(ret).readUInt16LE();
-                break;
             case 4:
                 return Buffer.from(ret).readUInt32LE();
-                break;
+            case 8:
+                return Buffer.from(ret).readUInt32LE();
             default:
                 return
-                break;
         }
     }
     else {
@@ -96,10 +94,16 @@ Mods = readByte(4, fileconst)
 Lifebar = readString(fileconst)
 TimeStamp = readByte(8, fileconst)
 CompressedSize = readByte(4, fileconst)
+compressed_data = []
+for (var i = 0; i < CompressedSize; i++) {
+    compressed_data.push(readByte(1, fileconst,true,true))
+}
+OnlineScoreID = readByte(8, fileconst)
 
-console.log(mode)
-console.log(version)
-console.log(md5map)
+
+console.log("mode: ",mode)
+console.log("version: ",version)
+console.log("md5map: ", md5map)
 console.log("Tanamoto: ", plrname)
 console.log("кто сюда смотрит: ", md5replay)
 console.log("R300: ", R300)
@@ -115,13 +119,14 @@ console.log("Mods: ", Mods)
 console.log("Lifebar: ", Lifebar)
 console.log("TimeStamp: ", TimeStamp)
 console.log("CompressedSize: ", CompressedSize)
-compressed_data = []
-for (var i = 0; i < CompressedSize; i++) {
-    compressed_data.push(readByte(1, fileconst,true,true))
-}
+
 lzma.LZMA().decompress(compressed_data, (result) => {
         let str = 0
         for( let i = 0; i <100; i++)
         str += (String.fromCharCode(result[i]));
         console.log(str.split(','))
 })
+
+console.log("OnlineScoreID: ", OnlineScoreID)
+
+
