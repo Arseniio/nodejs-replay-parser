@@ -1,11 +1,15 @@
 var fs = require('fs');
 var lzma = require('lzma-native')
+var mapparser = require('./MapParser.js')
+
+function count()
+
 const readuleb = (input, length) => {
     let result = 0;
     let shift = 0;
+    const byte = length
     while (true) {
         // const byte = input.shift();
-        const byte = length
         result |= (byte & 0x7f) << shift;
         shift += 7;
         if ((0x80 & byte) === 0) {
@@ -16,7 +20,8 @@ const readuleb = (input, length) => {
         }
     }
 };
-var file = "./arsenii0_-_Station_Earth_-_Cold_Green_Eyes_ft._Roos_Denayer_apples_Insane_2018-10-23_Osu.osr"
+var file = "./arsenii0 - Toto - Africa (MADD Frenchcore Bootleg) [Hurry boy, it's waiting there for you] (2022-02-22) Osu.osr"
+// var file = "./Tanamoto_-_Apocalyptica_-_Hall_of_the_Mountain_King_Extra_2019-11-23_Osu.osr"
 
 //Has three parts; a single byte which will be either 0x00, indicating that the next two parts are not present,
 //or 0x0b (decimal 11), indicating that the next two parts are present.
@@ -67,12 +72,9 @@ function readByte(len, fileconst, movepointer = true, Rstring = false) {
             case 8:
                 return Buffer.from(ret).readUInt32LE();
             default:
-                return
+                return Buffer.from(ret)
         }
-    }
-    else {
-        return Buffer.from(ret).toString('utf-8')
-    }
+}
 }
 
 fileconst = fs.readFileSync(file)
