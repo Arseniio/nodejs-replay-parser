@@ -16,6 +16,7 @@ const readuleb = (input, length) => {
         }
     }
 };
+// var file = "./replays/Tanamoto - Apocalyptica - Hall of the Mountain King [Extra] (2020-04-03).osr"
 var file = "./arsenii0_-_Station_Earth_-_Cold_Green_Eyes_ft._Roos_Denayer_apples_Insane_2018-10-23_Osu.osr"
 
 //Has three parts; a single byte which will be either 0x00, indicating that the next two parts are not present,
@@ -59,6 +60,11 @@ function readByte(len, fileconst, movepointer = true, Rstring = false) {
     }
     // console.log('RB:', ret)
     if (!Rstring){
+        if(len <= 2){
+            if(len == 0) return;
+            return Buffer.from(ret).readUInt16LE();
+        } else return Buffer.from(ret).readUInt32LE();
+
         switch (len) {
             case 2:
                 return Buffer.from(ret).readUInt16LE();
@@ -93,13 +99,14 @@ PFFC = readByte(1, fileconst)
 Mods = readByte(4, fileconst)
 Lifebar = readString(fileconst)
 TimeStamp = readByte(8, fileconst)
+// console.log(pos)
 CompressedSize = readByte(4, fileconst)
 compressed_data = []
 for (var i = 0; i < CompressedSize; i++) {
+    // console.log(pos)
     compressed_data.push(readByte(1, fileconst,true,true))
 }
 OnlineScoreID = readByte(8, fileconst)
-
 
 console.log("mode: ",mode)
 console.log("version: ",version)
@@ -121,12 +128,20 @@ console.log("TimeStamp: ", TimeStamp)
 console.log("CompressedSize: ", CompressedSize)
 
 lzma.LZMA().decompress(compressed_data, (result) => {
-        let str = 0
-        for( let i = 0; i <100; i++)
+        let str = '';
+        for( let i = 0; i < CompressedSize; i++)
         str += (String.fromCharCode(result[i]));
-        console.log(str.split(','))
+        // console.log(str.split(','));
+        frames = str.split(',');
+        absTime = 0;
+        actionframes = []
+        for(i = 0; i < frames.length; i++){
+            value = frames[i].split('|');
+            absTime += parseInt(value[0]);
+            actionframes[i] = [parseInt(value[0]), parseInt(absTime),parseInt(value[1]),parseInt(value[2]),parseInt(value[3])]
+        }
+        console.log(actionframes)
+        // fs.writeFileSync('govno.txt',actionframes[0][0])
 })
 
 console.log("OnlineScoreID: ", OnlineScoreID)
-
-
