@@ -1,19 +1,20 @@
 var fs = require('fs');
-var lzma = require('lzma-native')
-var mapparser = require('./MapParser.js')
+var lzma = require('lzma-native');
+const { toNamespacedPath } = require('path');
+var GetMapPoints = require('./MapParser.js')
 
-function count(mappoints = [],actions = [[],[],[]]){
-    var total = 0
-    for(var i = 0;i<actions.length;i++){
-        total += actions[i][?]
-    }
-    var avg = total / actions.length
-    for(var i = 0;i<actions.length;i++){
-        variance += (actions[i][?] / avg) ** 2
-    }
-    console.log("Variance: ",variance)
-    return variance
-}
+// function count(mappoints = [],actions = [[],[],[]]){
+//     var total = 0
+//     for(var i = 0;i<actions.length;i++){
+//         total += actions[i][?]
+//     }
+//     var avg = total / actions.length
+//     for(var i = 0;i<actions.length;i++){
+//         variance += (actions[i][?] / avg) ** 2
+//     }
+//     console.log("Variance: ",variance)
+//     return variance
+// }
 
 const readuleb = (input, length) => {
     let result = 0;
@@ -31,8 +32,8 @@ const readuleb = (input, length) => {
         }
     }
 };
-var file = "./arsenii0 - Toto - Africa (MADD Frenchcore Bootleg) [Hurry boy, it's waiting there for you] (2022-02-22) Osu.osr"
-// var file = "./Tanamoto_-_Apocalyptica_-_Hall_of_the_Mountain_King_Extra_2019-11-23_Osu.osr"
+// var file = "./arsenii0 - Toto - Africa (MADD Frenchcore Bootleg) [Hurry boy, it's waiting there for you] (2022-02-22) Osu.osr"
+var file = "./Tanamoto - Apocalyptica - Hall of the Mountain King [Extra] (2020-04-03) Osu-2.osr"
 
 //Has three parts; a single byte which will be either 0x00, indicating that the next two parts are not present,
 //or 0x0b (decimal 11), indicating that the next two parts are present.
@@ -79,18 +80,7 @@ function readByte(len, fileconst, movepointer = true, Rstring = false) {
             if(len == 0) return;
             return Buffer.from(ret).readUInt16LE();
         } else return Buffer.from(ret).readUInt32LE();
-
-        switch (len) {
-            case 2:
-                return Buffer.from(ret).readUInt16LE();
-            case 4:
-                return Buffer.from(ret).readUInt32LE();
-            case 8:
-                return Buffer.from(ret).readUInt32LE();
-            default:
-                return Buffer.from(ret)
-        }
-}
+    }
 }
 
 fileconst = fs.readFileSync(file)
@@ -141,19 +131,45 @@ console.log("CompressedSize: ", CompressedSize)
 
 lzma.LZMA().decompress(compressed_data, (result) => {
         let str = '';
-        for( let i = 0; i < CompressedSize; i++)
+        for( let i = 0; i < result.length; i++)
         str += (String.fromCharCode(result[i]));
+        fs.writeFileSync('govno.txt',str)
         // console.log(str.split(','));
         frames = str.split(',');
         absTime = 0;
         actionframes = []
         for(i = 0; i < frames.length; i++){
             value = frames[i].split('|');
+            // absTime += Math.abs(parseInt(value[0]));
+            if (value[0] < 0) continue;
+            if (value[1] == 256 && value[2] == -500 && i < 2) continue;
             absTime += parseInt(value[0]);
             actionframes[i] = [parseInt(value[0]), parseInt(absTime),parseInt(value[1]),parseInt(value[2]),parseInt(value[3])]
         }
         console.log(actionframes)
-        // fs.writeFileSync('govno.txt',actionframes[0][0])
+
+        // for (i = 0; i < actionframes.length; i++){
+        //     if (actionframes[i][4] == 5 || actionframes[i][4] == 10 || actionframes[i][4] == 1 || actionframes[i][4] == 8) console.log(actionframes[i]);
+        // }
+        str = "";
+        ii = 0;
+        b = 0;
+        MapPoints = GetMapPoints(fs.readFileSync('Apocalyptica - Hall of the Mountain King (pishifat) [Extra].osu',"utf-8"));
+
+        for(i = 0; i < frames.length; i++){
+            if(actionframes[i] == undefined) continue;
+            str += actionframes[i].toString() + "\n";
+            if ((actionframes[i][4] == 5 || actionframes[i][4] == 10 || actionframes[i][4] == 1 || actionframes[i][4] == 8) && Math.abs(MapPoints[b] - actionframes[i][1])<119.5){
+                console.log(actionframes[i][1],MapPoints[b],Math.abs(MapPoints[b] - actionframes[i][1]));
+                b++;
+            }
+            
+            if(i == frames.length - 1) console.log(actionframes[i]);
+        }
 })
 
 console.log("OnlineScoreID: ", OnlineScoreID)
+
+
+
+// console.log(GetMapPoints(fs.readFileSync('Apocalyptica - Hall of the Mountain King (pishifat) [Extra].osu',"utf-8")))
