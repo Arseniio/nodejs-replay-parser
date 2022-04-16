@@ -3,18 +3,21 @@ var lzma = require('lzma-native');
 const { toNamespacedPath } = require('path');
 var GetMapPoints = require('./MapParser.js')
 
-// function count(mappoints = [],actions = [[],[],[]]){
-//     var total = 0
-//     for(var i = 0;i<actions.length;i++){
-//         total += actions[i][?]
-//     }
-//     var avg = total / actions.length
-//     for(var i = 0;i<actions.length;i++){
-//         variance += (actions[i][?] / avg) ** 2
-//     }
-//     console.log("Variance: ",variance)
-//     return variance
-// }
+function count(actions = []){
+    var total = 0
+    var variance = 0
+    for(var i = 0;i<actions.length;i++){
+        total += actions[i]
+    }
+    var avg = total / actions.length
+    for(var i = 0;i<actions.length;i++){
+        variance += (actions[i] / avg) ** 2
+    }
+    variance = variance / actions.length
+    variance = Math.sqrt(variance)
+    console.log("Variance: ",variance * 10)
+    return variance
+}
 
 const readuleb = (input, length) => {
     let result = 0;
@@ -33,7 +36,7 @@ const readuleb = (input, length) => {
     }
 };
 // var file = "./arsenii0 - Toto - Africa (MADD Frenchcore Bootleg) [Hurry boy, it's waiting there for you] (2022-02-22) Osu.osr"
-var file = "./Tanamoto - Apocalyptica - Hall of the Mountain King [Extra] (2020-04-03) Osu-2.osr"
+var file = "./123.osr"
 
 //Has three parts; a single byte which will be either 0x00, indicating that the next two parts are not present,
 //or 0x0b (decimal 11), indicating that the next two parts are present.
@@ -144,32 +147,36 @@ lzma.LZMA().decompress(compressed_data, (result) => {
             if (value[0] < 0) continue;
             if (value[1] == 256 && value[2] == -500 && i < 2) continue;
             absTime += parseInt(value[0]);
-            actionframes[i] = [parseInt(value[0]), parseInt(absTime),parseInt(value[1]),parseInt(value[2]),parseInt(value[3])]
+            console.log(absTime)
+            actionframes[i] = [parseInt(value[0]), absTime ,parseInt(value[1]),parseInt(value[2]),parseInt(value[3])]
         }
-        console.log(actionframes)
+        // console.log(actionframes)
 
-        // for (i = 0; i < actionframes.length; i++){
-        //     if (actionframes[i][4] == 5 || actionframes[i][4] == 10 || actionframes[i][4] == 1 || actionframes[i][4] == 8) console.log(actionframes[i]);
-        // }
+        for (i = 0; i < actionframes.length; i++){
+            if(actionframes[i] == undefined) continue;
+            if ((actionframes[i][4] == 5 || actionframes[i][4] == 10 || actionframes[i][4] == 1 || actionframes[i][4] == 8 || actionframes[i][4] == 15) && (actionframes[i-1][4]!=actionframes[i][4])) console.log(actionframes[i]);
+        }
         str = "";
-        ii = 0;
+        goodframes = []
         b = 0;
-        MapPoints = GetMapPoints(fs.readFileSync('Apocalyptica - Hall of the Mountain King (pishifat) [Extra].osu',"utf-8"));
+        MapPoints = GetMapPoints(fs.readFileSync('./123.osu',"utf-8"));
 
         for(i = 0; i < frames.length; i++){
             if(actionframes[i] == undefined) continue;
             str += actionframes[i].toString() + "\n";
-            if ((actionframes[i][4] == 5 || actionframes[i][4] == 10 || actionframes[i][4] == 1 || actionframes[i][4] == 8) && Math.abs(MapPoints[b] - actionframes[i][1])<119.5){
+            if ((actionframes[i][4] == 5 || actionframes[i][4] == 10 || actionframes[i][4] == 1 || actionframes[i][4] == 8 || actionframes[i][4] == 15) && Math.abs(MapPoints[b] - actionframes[i][1])<109.5){
                 console.log(actionframes[i][1],MapPoints[b],Math.abs(MapPoints[b] - actionframes[i][1]));
+                goodframes.push(actionframes[i][1] - MapPoints[b])
                 b++;
             }
-            
+
             if(i == frames.length - 1) console.log(actionframes[i]);
         }
+        count(goodframes)
 })
 
 console.log("OnlineScoreID: ", OnlineScoreID)
 
 
 
-// console.log(GetMapPoints(fs.readFileSync('Apocalyptica - Hall of the Mountain King (pishifat) [Extra].osu',"utf-8")))
+console.log(GetMapPoints(fs.readFileSync('123.osu',"utf-8")))
