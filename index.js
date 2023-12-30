@@ -2,15 +2,7 @@ var fs = require('fs');
 var lzma = require('lzma-native');
 var GetMapPoints = require('./MapParser.js')
 // const simplestatistics = require('simple-statistics');
-
-class HitObj {
-    constructor(tick, x, y) {
-        this.tick = tick;
-        this.x = x;
-        this.y = y;
-    }
-
-}
+const URparser = require('./exports.js')
 
 const readuleb = () => {
     let result = 0;
@@ -62,36 +54,12 @@ function readString(fileconst) {
     }
 }
 
-function isPressed(currframe, prevframe) {
-    if ((currframe[4] != prevframe[4]) && (currframe[4] > prevframe[4])) return 1;
-    return 0;
-}
-
-function findNextHitFrame(frames, fromFrame) {
-    for (let i = fromFrame + 1; i < frames.length; i++) {
-        if (((frames[i][4] != frames[i - 1][4]) && (frames[i][4] > frames[i - 1][4]))) {
-            return i;
-        }
-    }
-    return;
-}
-
-function findPrevHitFrame(frames, fromFrame) {
-    for (let i = fromFrame - 1; i > 0; i--) {
-        if (((frames[i - 1][4] != frames[i][4]) && (frames[i - 1][4] < frames[i][4]))) {
-            return i;
-        }
-    }
-    return;
-}
-
 pos = 0
 
 function readByte(len, fileconst, movepointer = true, Rstring = false) {
     if (len == 1) {
         ret = fileconst[pos]
         movepointer == true ? pos = pos + len : ""
-        // console.log('RB:', ret)
         return ret
     }
 
@@ -169,24 +137,6 @@ console.log("Lifebar: ", Lifebar)
 console.log("TimeStamp: ", TimeStamp)
 console.log("CompressedSize: ", CompressedSize)
 
-function hasAnyNewInput(currInputs, prevInputs) {
-    return (currInputs & ~prevInputs) !== 0;
-}
-
-function isNewKeyPressed(curr, prev) {
-    return hasAnyNewInput(curr, prev) && curr !== 0;
-}
-
-function isOnCircle(obj, frame, r) {
-    return Math.pow(parseInt(obj[1]) - frame[2], 2) +
-        Math.pow(parseInt(obj[2]) - frame[3], 2) <= Math.pow(r, 2);
-}
-
-function isInHitWindow(obj, frame, border) {
-    return (parseInt(obj[0]) - border) <= frame[1] &&
-        frame[1] <= (parseInt(obj[0]) + border);
-}
-
 lzma.LZMA().decompress(compressed_data, async (result) => {
     let str = '';
     for (let i = 0; i < result.length; i++) str += (String.fromCharCode(result[i]));
@@ -198,48 +148,46 @@ lzma.LZMA().decompress(compressed_data, async (result) => {
     for (i = 0; i < frames.length; i++) {
         value = frames[i].split('|');
         if (parseInt(value[0]) == 0 || parseInt(value[0]) == -12345) continue;
-        absTime += parseInt(value[0]);
-        actionframes.push([parseInt(value[0]), parseInt(absTime), parseInt(value[1]), parseInt(value[2]), parseInt(value[3])])
+        absTime += parseInt(value[0]); 
+        actionframes.push(new URparser.Frame(parseInt(value[1]), parseInt(value[2]),parseInt(absTime),parseInt(value[0]), parseInt(value[3])))
     }
 
-
-
-    var obj = GetMapPoints('./dtm.osu');
-    var previnput = 0;
+    var Map = new URparser.MapParser('./dtm.osu');
+    var MapData = Map.tryParse();
+    var prevFrame = 0;
 
     var negHitError = [];
     var posHitError = [];
     var allHitError = [];
 
-    var cssize = 54.4 - 4.48 * cs;
-    var hit50window = 200 - 10 * obj[4];
-    for (var objIndex = 0, frameIndex = 0; objIndex < obj[0].length && frameIndex < frames.length;) {
-        var currObj = [obj[0][objIndex], obj[1][objIndex], obj[2][objIndex]]
+    var cssize = 54.4 - 4.48 * Map.cs;
+    var hit50window = 200 - 10 * Map.od;
+
+    for (var objIndex = 0, frameIndex = 0; objIndex < MapData.length && frameIndex < actionframes.length;) {
+        var currObj = MapData[objIndex]
         var currFrame = actionframes[frameIndex]
-        if (currFrame[1] > parseInt(currObj[0]) + hit50window) {
-            previnput = currFrame[4];
+        if (currFrame.Tick > currObj.Tick + hit50window) {
+            prevFrame = currFrame;
             objIndex++;
             continue;
         }
         // console.log(isOnCircle(currObj, currFrame, cssize));
-        if (isNewKeyPressed(parseInt(currFrame[4]), previnput) &&
-            isOnCircle(currObj, currFrame, cssize) &&
-            isInHitWindow(currObj, currFrame, hit50window)
+        if (URparser.isNewKeyPressed(currFrame, prevFrame) &&
+            URparser.isOnCircle(currObj, currFrame, cssize) &&
+            URparser.isInHitWindow(currObj, currFrame, hit50window)
         ) {
             hiterror = 0
-            var hiterror = parseInt(currFrame[1]) - parseInt(currObj[0]);
-            if (hiterror < 0)
-                negHitError.push(hiterror);
+            var hiterror = currFrame.Tick - currObj.Tick;
+            if (hiterror < 0) negHitError.push(hiterror);
             else posHitError.push(hiterror);
             allHitError.push(hiterror);
             // if(objIndex<200)
-            console.log(hiterror);
+            // console.log(hiterror);
             objIndex++;
         }
-        previnput = currFrame[4];
+        prevFrame = currFrame;
         frameIndex++;
         // console.log('frameIndex,objIndex :>> ', frameIndex,objIndex);
-        // clg
     }
 
     let negSum = 0, posSum = 0, allSum = 0;
