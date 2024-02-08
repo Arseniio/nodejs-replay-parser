@@ -1,3 +1,4 @@
+const { time } = require('console');
 const fs = require('fs');
 
 class Vec2 {
@@ -72,7 +73,7 @@ class MapParser {
             if (lines[str].includes("CircleSize")) this.cs = parseInt(lines[str].split(":")[1])
             if (lines[str].includes("ApproachRate")) this.ar = parseInt(lines[str].split(":")[1])
             if (lines[str].includes("OverallDifficulty")) this.od = parseInt(lines[str].split(":")[1])
-            if (lines[str].includes("SliderMultiplier")) this.SM = parseInt(lines[str].split(":")[1])
+            if (lines[str].includes("SliderMultiplier")) this.SM = parseFloat(lines[str].split(":")[1])
             if (lines[str] == "[TimingPoints]") {
                 str++
                 break;
@@ -81,24 +82,29 @@ class MapParser {
         var buf = ""
         var firstUninhPoint = false;
         var lastSV = null;
+        var lastBL = null;
+        var lastPoint = null
+        var sv = 1
         for (; str < lines.length; str++) {
             buf = lines[str].split(",")
             //where SV is the slider velocity multiplier given by the effective inherited timing point, or 1 if there is none
             //0time,1beatLength,2meter,3sampleSet,4sampleIndex,5volume,6uninherited,effects
             var point = [];
             if (parseFloat(buf[1]) > 0) {
-                var sv = firstUninhPoint ? 100 / parseFloat(buf[1]) : 1
+                sv = 1 //я в душе не ебу почему 1 и для хуя там нужна формула 100 / beatlength....
                 this.TimingPoints.push(new TimingPoint(
-                    parseInt(buf[0]), parseFloat(buf[1]), parseInt(buf[2]), parseInt(buf[6]),)
+                    parseInt(buf[0]), parseFloat(buf[1]), parseInt(buf[2]), parseInt(buf[6]), sv)
                 )
+                lastPoint = this.TimingPoints[this.TimingPoints.length-1]
                 lastSV = sv;
+                lastBL = parseFloat(buf[1])
             }
             else {
                 var mult = -100 / parseFloat(buf[1])
-                var sv = mult * lastSV
+                sv = mult * lastPoint.SV;
                 firstUninhPoint = true;
                 this.TimingPoints.push(new TimingPoint(
-                    parseInt(buf[0]), parseFloat(buf[1]), parseInt(buf[2]), parseInt(buf[6]), sv)
+                    parseInt(buf[0]), lastPoint.BeatLength, parseInt(buf[2]), parseInt(buf[6]), sv)
                 )
             }
             if (lines[str] == "[HitObjects]") {
@@ -133,9 +139,10 @@ class MapParser {
                 })
                 var timeSum = 0;
                 var timingCounter = parseInt(buf[2]);
-                var lastTimingPoint = this.TimingPoints.filter((tp)=>tp.Time < timingCounter).pop()
-                timeSum = Math.abs(parseInt(buf[7]) / (this.SM * 100 * lastTimingPoint.SV) * lastTimingPoint.BeatLength)
+                var lastTimingPoint = this.TimingPoints.filter((tp) => tp.Time <= timingCounter).pop()
 
+                timeSum = Math.abs(parseFloat(buf[7]) / (this.SM * 100 * lastTimingPoint.SV) * lastTimingPoint.BeatLength)
+                timeSum = parseInt(timeSum)
                 // for (var i = 0; i < curvePoint.Points.length; i++) {
                 //     var lastTimingPoint = this.TimingPoints.filter((tp)=>tp.Time < timingCounter).pop()
                 //     timeSum = parseInt(Math.abs(parseInt(buf[7]) / (this.SM * 100 * lastTimingPoint.SV) * lastTimingPoint.BeatLength).toFixed(0))
@@ -145,12 +152,11 @@ class MapParser {
                 //         parseInt(buf[2]),
                 //         timeSum)
                 // }
-            //length / (SliderMultiplier * 100 * SV) * beatLength
+                //length / (SliderMultiplier * 100 * SV) * beatLength
                 // осталось доделать фильтр что бы находило тайминг поинт до начала слайдера 
                 // брало его св и подставляло в формулу выше(116)
                 // 
                 // console.log('SV :>> ', SV);
-                var endTime = buf[7] / (this.SM * 100)
                 HitObjects.push(new HitObject(
                     parseInt(buf[0]),
                     parseInt(buf[1]),
@@ -160,13 +166,13 @@ class MapParser {
                     curvePoint,
                     timeSum
                 ))
+                console.log(HitObjects[HitObjects.length - 1], lastTimingPoint);
             }
-            console.log(lastTimingPoint);
-            // console.log(HitObjects[HitObjects.length-1],lastTimingPoint);
+            // console.log(lastTimingPoint);
         }
         this.preempt = this.mapDifficultyRange(this.ar, 1800, 1200, 450)
         this.HitObjects = HitObjects;
-        updateStacking();
+        // updateStacking();
         return HitObjects;
     }
 }
@@ -215,7 +221,7 @@ class HitObject {
         this.Start = Start
         this.End = End
         this.Length = Length
-        this.CurvePoints = []
+        this.CurvePoints = CurvePoints
         this.StackIndex = 0
     }
 
